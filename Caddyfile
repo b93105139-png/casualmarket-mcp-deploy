@@ -14,9 +14,14 @@
 :8080 {
 	@authorized header Authorization "Bearer {$BEARER_TOKEN}"
 	@queryauth query token={$BEARER_TOKEN}
+	@oauth_discovery path /.well-known/oauth-authorization-server /.well-known/oauth-protected-resource /register /oauth/register
 
 	handle /health {
 		respond "OK" 200
+	}
+
+	handle @oauth_discovery {
+		respond "Not Found" 404
 	}
 
 	handle @authorized {
