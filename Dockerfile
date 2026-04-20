@@ -34,10 +34,12 @@ RUN apt-get update \
 # Copy prebuilt CasualMarket (venv + source)
 COPY --from=builder /app/casualmarket /app/casualmarket
 
-# Copy our config
+# Copy our config + Streamable HTTP entrypoint (placed at /app/ so the target
+# directory is guaranteed to exist; start.sh sets PYTHONPATH so `from src.*`
+# resolves into the CasualMarket checkout)
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY start.sh /app/start.sh
-COPY http_server.py /app/casualmarket/src/http_server.py
+COPY http_server.py /app/http_server.py
 RUN chmod +x /app/start.sh
 
 ENV PATH="/app/casualmarket/.venv/bin:$PATH" \
