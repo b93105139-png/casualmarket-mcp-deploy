@@ -6,9 +6,42 @@ if [ -z "$BEARER_TOKEN" ]; then
     exit 1
 fi
 
+# Write the Streamable HTTP entrypoint at container start. We do this here
+# rather than via Dockerfile COPY because Zeabur's builder caches the runtime
+# stage's COPY instructions aggressively — new COPY lines get silently
+# dropped across rebuilds. start.sh itself IS being copied, so it's the one
+# reliable place to materialise new files.
+cat > /app/http_server.py <<'PYEOF'
+#!/usr/bin/env python3
+"""Streamable HTTP transport entrypoint for CasualMarket MCP."""
+
+import asyncio
+
+from src.server import mcp
+from src.utils.logging import get_logger, setup_logging
+
+setup_logging()
+logger = get_logger(__name__)
+
+
+async def main() -> None:
+    logger.info("Starting CasualMarket MCP Server with Streamable HTTP")
+    logger.info("Endpoint: http://0.0.0.0:8000/mcp")
+    await mcp.run_http_async(host="0.0.0.0", port=8000, log_level="info")
+
+
+def run() -> None:
+    asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run()
+PYEOF
+
+echo "Generated /app/http_server.py:"
+ls -la /app/http_server.py
+
 # Start CasualMarket with Streamable HTTP transport (MCP endpoint at /mcp)
-# http_server.py lives at /app/; PYTHONPATH lets `from src.server import mcp`
-# resolve against the CasualMarket checkout.
 cd /app/casualmarket
 PYTHONPATH=/app/casualmarket python /app/http_server.py &
 CASUAL_PID=$!
