@@ -13,12 +13,22 @@
 
 :8080 {
 	@authorized header Authorization "Bearer {$BEARER_TOKEN}"
+	@queryauth query token={$BEARER_TOKEN}
 
 	handle /health {
 		respond "OK" 200
 	}
 
 	handle @authorized {
+		reverse_proxy 127.0.0.1:8000 {
+			flush_interval -1
+			transport http {
+				read_timeout 600s
+			}
+		}
+	}
+
+	handle @queryauth {
 		reverse_proxy 127.0.0.1:8000 {
 			flush_interval -1
 			transport http {
