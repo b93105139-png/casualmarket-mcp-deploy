@@ -1,0 +1,33 @@
+{
+	auto_https off
+	admin off
+	servers {
+		timeouts {
+			read_body 60s
+			read_header 10s
+			write 0s
+			idle 600s
+		}
+	}
+}
+
+:8080 {
+	@authorized header Authorization "Bearer {$BEARER_TOKEN}"
+
+	handle /health {
+		respond "OK" 200
+	}
+
+	handle @authorized {
+		reverse_proxy 127.0.0.1:8000 {
+			flush_interval -1
+			transport http {
+				read_timeout 600s
+			}
+		}
+	}
+
+	handle {
+		respond "Unauthorized" 401
+	}
+}
