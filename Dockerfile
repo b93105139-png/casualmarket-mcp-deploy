@@ -37,6 +37,7 @@ COPY --from=builder /app/casualmarket /app/casualmarket
 # Copy our config
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY start.sh /app/start.sh
+COPY http_server.py /app/casualmarket/src/http_server.py
 RUN chmod +x /app/start.sh
 
 ENV PATH="/app/casualmarket/.venv/bin:$PATH" \
