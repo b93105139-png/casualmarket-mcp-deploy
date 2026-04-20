@@ -7,18 +7,18 @@ if [ -z "$BEARER_TOKEN" ]; then
 fi
 
 # Start CasualMarket with Streamable HTTP transport (MCP endpoint at /mcp)
+# Run as script file (not module) so the file we copied into src/ is found,
+# with PYTHONPATH set so its `from src.server import mcp` resolves.
 cd /app/casualmarket
-python -m src.http_server &
+PYTHONPATH=/app/casualmarket python /app/casualmarket/src/http_server.py &
 CASUAL_PID=$!
 
-# Wait for the MCP endpoint to respond (accept any non-connection-refused reply)
+# Wait for the MCP endpoint to respond
 for i in $(seq 1 60); do
-	if curl -fs -o /dev/null -X POST http://127.0.0.1:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{}' 2>/dev/null || [ $? -ne 7 ]; then
-		code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{}' 2>/dev/null || echo "000")
-		if [ "$code" != "000" ] && [ "$code" != "" ]; then
-			echo "CasualMarket ready after ${i}s (code=$code)"
-			break
-		fi
+	code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{}' 2>/dev/null || echo "000")
+	if [ "$code" != "000" ] && [ "$code" != "" ]; then
+		echo "CasualMarket ready after ${i}s (code=$code)"
+		break
 	fi
 	if ! kill -0 "$CASUAL_PID" 2>/dev/null; then
 		echo "ERROR: CasualMarket process exited during startup"
