@@ -1,4 +1,5 @@
 # Multi-stage build: CasualMarket MCP + Caddy (Bearer auth reverse proxy)
+# rev: 2026-04-20 streamable-http
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
@@ -31,16 +32,18 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends caddy \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy prebuilt CasualMarket (venv + source)
+# Copy prebuilt CasualMarket (venv + source) from builder stage
 COPY --from=builder /app/casualmarket /app/casualmarket
 
-# Copy our config + Streamable HTTP entrypoint (placed at /app/ so the target
-# directory is guaranteed to exist; start.sh sets PYTHONPATH so `from src.*`
-# resolves into the CasualMarket checkout)
+# Copy our Caddy config, start script, and the Streamable HTTP entrypoint.
+# http_server.py is placed at /app/ so the COPY target directory always exists;
+# start.sh sets PYTHONPATH=/app/casualmarket so its `from src.server import mcp`
+# resolves into the CasualMarket checkout (the installed venv package doesn't
+# include this file, since we add it here).
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY start.sh /app/start.sh
 COPY http_server.py /app/http_server.py
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/start.sh && ls -la /app/
 
 ENV PATH="/app/casualmarket/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
